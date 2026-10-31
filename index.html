@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ScamShield AI: an explainable FinTech safety prototype that flags suspicious UPI-related messages and phishing URL patterns using client-side heuristic analysis.">
+  <title>ScamShield AI | Protect before you pay</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <!-- ============ AUTH SCREEN ============ -->
+<div class="auth-screen" id="authScreen">
+  <section class="auth-aside" aria-label="About ScamShield AI">
+    <div class="brand">
+      <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 2 4 7v8c0 7.5 5 13 12 15 7-2 12-7.5 12-15V7L16 2Z" fill="none" stroke="currentColor" stroke-width="2.2"/>
+        <path d="m10.5 16 4 4 7-8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name">ScamShield AI</span>
+    </div>
+    <h1>Protect before you pay.</h1>
+    <p>Check suspicious messages and links, see exactly why they look risky, and keep your own scan history in one private place.</p>
+    <ul class="auth-points">
+      <li>Explainable warning signs, not just a score</li>
+      <li>Your saved scans are visible only to you</li>
+      <li>We never ask for OTPs, PINs or bank details</li>
+    </ul>
+  </section>
+
+  <div class="auth-main">
+    <div class="card auth-card">
+      <div class="tabs" id="authTabs" role="tablist" aria-label="Account" hidden>
+        <button class="tab" id="tabLogin" type="button" role="tab" aria-selected="false" data-goto="login">Log in</button>
+        <button class="tab" id="tabSignup" type="button" role="tab" aria-selected="false" data-goto="signup">Sign up</button>
+      </div>
+
+      <div id="view-loading" class="auth-view auth-loading" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Checking your session…</p>
+      </div>
+
+      <form id="view-login" class="auth-view auth-form" novalidate hidden>
+        <h2>Welcome back</h2>
+        <p class="hint">Log in to open your dashboard.</p>
+        <p class="auth-msg" id="msgLogin" hidden></p>
+        <div class="field">
+          <label for="liEmail">Email address</label>
+          <input id="liEmail" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="liPassword">Password</label>
+          <div class="password-wrap">
+            <input id="liPassword" class="pw-input" type="password" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" data-toggle-password="liPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <div class="auth-row">
+          <label class="check"><input type="checkbox" id="liRemember" checked> Remember session</label>
+          <button type="button" class="link-btn" data-goto="forgot">Forgot password?</button>
+        </div>
+        <button class="btn btn-primary btn-block" id="loginBtn" type="submit">Log in</button>
+        <p class="auth-switch">New here? <button type="button" class="link-btn" data-goto="signup">Create an account</button></p>
+      </form>
+
+      <form id="view-signup" class="auth-view auth-form" novalidate hidden>
+        <h2>Create your account</h2>
+        <p class="hint">You will get an email to verify your address.</p>
+        <p class="auth-msg" id="msgSignup" hidden></p>
+        <div class="field">
+          <label for="suName">Full name</label>
+          <input id="suName" type="text" autocomplete="name" maxlength="60" required>
+        </div>
+        <div class="field">
+          <label for="suEmail">Email address</label>
+          <input id="suEmail" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="suPassword">Password</label>
+          <div class="password-wrap">
+            <input id="suPassword" class="pw-input" type="password" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" data-toggle-password="suPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+          <p class="hint">At least 8 characters, with a letter and a number.</p>
+        </div>
+        <div class="field">
+          <label for="suConfirm">Confirm password</label>
+          <div class="password-wrap">
+            <input id="suConfirm" class="pw-input" type="password" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" data-toggle-password="suConfirm" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="signupBtn" type="submit">Create account</button>
+        <p class="auth-switch">Already registered? <button type="button" class="link-btn" data-goto="login">Log in</button></p>
+      </form>
+
+      <form id="view-forgot" class="auth-view auth-form" novalidate hidden>
+        <h2>Reset your password</h2>
+        <p class="hint">Enter your email and we will send a reset link.</p>
+        <p class="auth-msg" id="msgForgot" hidden></p>
+        <div class="field">
+          <label for="fpEmail">Email address</label>
+          <input id="fpEmail" type="email" autocomplete="email" required>
+        </div>
+        <button class="btn btn-primary btn-block" id="forgotBtn" type="submit">Send reset link</button>
+        <p class="auth-switch"><button type="button" class="link-btn" data-goto="login">Back to log in</button></p>
+      </form>
+
+      <form id="view-reset" class="auth-view auth-form" novalidate hidden>
+        <h2>Set a new password</h2>
+        <p class="hint">Choose a password you have not used here before.</p>
+        <p class="auth-msg" id="msgReset" hidden></p>
+        <div class="field">
+          <label for="rsPassword">New password</label>
+          <div class="password-wrap">
+            <input id="rsPassword" class="pw-input" type="password" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" data-toggle-password="rsPassword" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+          <p class="hint">At least 8 characters, with a letter and a number.</p>
+        </div>
+        <div class="field">
+          <label for="rsConfirm">Confirm new password</label>
+          <div class="password-wrap">
+            <input id="rsConfirm" class="pw-input" type="password" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" data-toggle-password="rsConfirm" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="resetBtn" type="submit">Update password</button>
+        <p class="auth-switch"><button type="button" class="link-btn" id="cancelResetBtn">Cancel</button></p>
+      </form>
+
+      <div id="view-verify" class="auth-view auth-form" hidden>
+        <h2>Check your email</h2>
+        <p>We sent a verification link to <strong id="verifyEmail"></strong>. Open it, then log in.</p>
+        <p class="auth-msg" id="msgVerify" hidden></p>
+        <button class="btn btn-ghost btn-block" id="resendBtn" type="button">Resend email</button>
+        <p class="auth-switch"><button type="button" class="link-btn" data-goto="login">Back to log in</button></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="toast" id="toast" role="status" hidden></p>
+
+  <div class="app" id="appShell" hidden>
+
+    <!-- ============ LEFT SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+      <div class="brand">
+        <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 2 4 7v8c0 7.5 5 13 12 15 7-2 12-7.500 12-15V7L16 2Z" fill="none" stroke="currentColor" stroke-width="2.200"/>
+          <path d="m10.500 16 4 4 7-8" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">ScamShield AI</span>
+      </div>
+
+      <nav>
+        <ul class="nav-list">
+          <li><a href="#overview" class="nav-link active">Overview</a></li>
+          <li><a href="#scanner" class="nav-link">Scam scanner</a></li>
+          <li><a href="#history" class="nav-link">Scan history</a></li>
+          <li><a href="#guide" class="nav-link">Safety guide</a></li>
+          <li><a href="#profile" class="nav-link">Profile</a></li>
+          <li><a href="#privacy" class="nav-link">Privacy note</a></li>
+        </ul>
+      </nav>
+
+      <div class="profile">
+      <div class="avatar" id="sideAvatar" aria-hidden="true">U</div>
+       <div class="profile-text">
+       <p class="profile-name" id="sideName">User</p>
+       <p class="profile-sub" id="sideEmail"></p>
+       </div>
+      </div>
+       <button class="btn btn-ghost btn-block" type="button" data-logout>Log out</button>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+
+    <div class="content">
+
+      <!-- ============ TOP BAR ============ -->
+      <header class="topbar">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <p class="breadcrumb">Workspace / <strong>Dashboard</strong></p>
+        <div class="topbar-right">
+          <p class="engine-status" role="status"><span class="dot" aria-hidden="true"></span>Detection engine: rule-based, running locally</p>
+          <button class="btn btn-ghost" id="openAbout" type="button">About</button>
+          
+        </div>
+      </header>
+
+      <main id="main">
+
+        <!-- ============ HERO ============ -->
+        <section class="hero" id="overview" aria-labelledby="heroTitle">
+          <div>
+            <h1 id="heroTitle">Stay one step ahead of scams.</h1>
+            <p class="hero-sub">Check suspicious messages and links before you take action.</p>
+          </div>
+          <p class="hero-meta">Hackathon prototype &middot; <time id="todayDate"></time></p>
+        </section>
+
+        <!-- ============ STAT CARDS ============ -->
+        <section class="stats" aria-label="Summary statistics">
+          <article class="card stat">
+            <h2 class="stat-label">Total scans</h2>
+            <p class="stat-value" id="statTotal">0</p>
+          </article>
+          <article class="card stat">
+            <h2 class="stat-label">High / critical flags</h2>
+            <p class="stat-value" id="statHigh">0</p>
+          </article>
+          <article class="card stat">
+            <h2 class="stat-label">Links detected</h2>
+            <p class="stat-value" id="statLinks">0</p>
+          </article>
+          <article class="card stat">
+            <h2 class="stat-label">Safety status</h2>
+            <p class="stat-text">Never share an OTP, UPI PIN, CVV or password with anyone.</p>
+          </article>
+        </section>
+
+        <!-- ============ SCANNER + RESULT ============ -->
+        <section class="workspace" id="scanner" aria-label="Scam scanner">
+
+          <!-- Input panel -->
+          <div class="card scanner">
+            <h2>Scam scanner</h2>
+
+            <div class="tabs" role="tablist" aria-label="Scan type">
+              <button class="tab active" id="tabMessage" type="button" role="tab" aria-selected="true" aria-controls="scanPanel" data-mode="message">Message scan</button>
+              <button class="tab" id="tabUrl" type="button" role="tab" aria-selected="false" aria-controls="scanPanel" data-mode="url">URL scan</button>
+            </div>
+
+            <div id="scanPanel" role="tabpanel" aria-labelledby="tabMessage">
+              <label for="scanInput" class="field-label" id="inputLabel">Paste an SMS, WhatsApp message or payment request</label>
+              <textarea id="scanInput" rows="7" maxlength="2000" placeholder="Paste the message here. Do not paste real OTPs, PINs or passwords." aria-describedby="inputHint inputError"></textarea>
+
+              <div class="field-meta">
+              <p id="inputHint" class="hint">Analysed in your browser. The saved history entry goes to your account only.</p>
+                <p class="counter"><span id="charCount">0</span> / 2000</p>
+              </div>
+              <p class="error" id="inputError" role="alert" hidden></p>
+
+              <div class="samples">
+                <p class="samples-title">Try a sample</p>
+                <div class="sample-row" id="sampleButtons">
+                  <button class="chip" type="button" data-sample="kyc">Urgent KYC alert</button>
+                  <button class="chip" type="button" data-sample="bill">Normal bill confirmation</button>
+                  <button class="chip" type="button" data-sample="otp">OTP request</button>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-primary" id="analyseBtn" type="button">Analyse</button>
+                <button class="btn btn-ghost" id="clearBtn" type="button">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result panel -->
+          <div class="card result" id="resultPanel" aria-live="polite">
+            <h2>Risk assessment</h2>
+
+            <div class="empty-state" id="resultEmpty">
+              <p class="empty-title">No scan yet</p>
+              <p>Paste a message or URL and select Analyse. You will see a risk score, the warning signs found and what to do next.</p>
+            </div>
+
+            <div class="result-body" id="resultBody" hidden>
+              <div class="score-row">
+                <div class="gauge" aria-hidden="true">
+                  <svg viewBox="0 0 120 120" width="120" height="120">
+                    <circle class="gauge-track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+                    <circle class="gauge-fill" id="gaugeFill" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" transform="rotate(-90 60 60)"/>
+                  </svg>
+                  <p class="gauge-number" id="scoreNumber">0</p>
+                </div>
+                <div>
+                  <p class="risk-badge" id="riskLabel">Low risk</p>
+                  <p class="score-caption">Heuristic score out of 100. It is not a probability of fraud.</p>
+                </div>
+              </div>
+
+              <p class="summary" id="resultSummary"></p>
+              <!-- Scam category and language detection -->
+              <div class="detection-details">
+              <div class="detection-item">
+               <span class="detection-label">Detected language</span>
+               <span class="detection-value" id="detectedLanguage">Not detected</span>
+              </div>
+
+              <div class="detection-item">
+               <span class="detection-label">Scam category</span>
+               <span class="category-badge" id="detectedCategory">
+                       Not identified
+               </span>
+               </div>
+              </div>
+
+              <h3>Warning signs found</h3>
+              <ul class="indicators" id="indicatorList"></ul>
+
+              <div class="recommend" id="recommendBox">
+                <h3>What to do next</h3>
+                <p id="recommendText"></p>
+              </div>
+
+              <div class="actions">
+                <button class="btn btn-primary" id="copyBtn" type="button">Copy report</button>
+                <button class="btn btn-ghost" id="newScanBtn" type="button">New scan</button>
+              </div>
+              <p class="hint" id="copyStatus" role="status"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CHART + REMINDERS ============ -->
+        <section class="lower" aria-label="Activity and reminders">
+          <div class="card chart-card">
+            <h2>Scans in the last 7 days</h2>
+            <div class="chart-wrap">
+              <canvas id="activityChart" aria-label="Bar chart of scans per day for the last seven days" role="img"></canvas>
+            </div>
+            <p class="hint" id="chartFallback" hidden>The chart could not load (you may be offline). Your scans are still saved and counted above.</p>
+          </div>
+
+          <div class="card reminders">
+            <h2>Payment safety reminders</h2>
+            <ul class="plain-list">
+              <li>Banks and payment apps never ask for your OTP or UPI PIN.</li>
+              <li>You never need to enter a PIN to receive money.</li>
+              <li>Be careful with unexpected refunds, rewards and QR codes.</li>
+              <li>Do not install screen-sharing apps because a caller asks you to.</li>
+              <li>Type the website address yourself or use the official app.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ============ HISTORY ============ -->
+        <section class="card history" id="history" aria-labelledby="historyTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="historyTitle">Scan history</h2>
+                <p class="hint">Saved to your account. Only you can see these scans. Keeps your latest 50.</p>
+                <p class="hint" id="syncStatus" role="status"></p>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost" id="exportBtn" type="button">Export CSV</button>
+              <button class="btn btn-danger" id="clearHistoryBtn" type="button">Clear history</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Recent scans</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Input</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Risk</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Time</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+          <p class="empty-note" id="historyEmpty">No scans saved yet.</p>
+        </section>
+
+        <!-- ============ SAFETY GUIDE ============ -->
+        <section class="card guide" id="guide" aria-labelledby="guideTitle">
+          <h2 id="guideTitle">Safety guide</h2>
+          <ol class="steps">
+            <li>
+              <h3>Stop</h3>
+              <p>Do not click the link, reply, scan a QR code or share any credentials.</p>
+            </li>
+            <li>
+              <h3>Verify</h3>
+              <p>Contact the organisation through its official app, or a website or number you already trust.</p>
+            </li>
+            <li>
+              <h3>Report</h3>
+              <p>If you lost money to cyber financial fraud in India, call <strong>1930</strong> right away and report at the
+                <a href="https://cybercrime.gov.in/" target="_blank" rel="noopener noreferrer">National Cyber Crime Reporting Portal</a>.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="card profile-card" id="profile" aria-labelledby="profileTitle">
+          <h2 id="profileTitle">Your profile</h2>
+          <div class="profile-head">
+          <div class="avatar avatar-lg" id="profAvatar" aria-hidden="true">U</div>
+          <div>
+             <p class="profile-name" id="profName">User</p>
+            <p class="hint" id="profEmail"></p>
+          </div>
+        </div>
+        <dl class="profile-list">
+         <dt>Email status</dt><dd id="profVerified"></dd>
+         <dt>Member since</dt><dd id="profSince"></dd>
+         <dt>Saved scans</dt><dd>Stored in your account. Only you can read them.</dd>
+         </dl>
+         <div class="actions">
+         <button class="btn btn-danger" type="button" data-logout>Log out</button>
+         </div>
+        </section>
+
+        <!-- ============ PRIVACY ============ -->
+        <section class="card privacy" id="privacy" aria-labelledby="privacyTitle">
+          <h2 id="privacyTitle">Privacy note</h2>
+          <ul class="plain-list">
+            <li>All analysis runs in your browser. Your input is not sent to any server.</li>
+            <li>Links you enter are never opened or fetched.</li>
+            <li>Scan history is saved in this browser. Use Clear history to delete it.</li>
+            <li>ScamShield never asks for banking details, OTPs or PINs.</li>
+          </ul>
+        </section>
+
+      </main>
+
+      <!-- ============ FOOTER ============ -->
+      <footer class="footer">
+        <p>HackFront India &middot; FinTech theme &middot; Prototype.</p>
+        <p>ScamShield AI gives a first-pass warning from simple rules. It can miss scams and can flag genuine messages. A low score does not mean an input is safe. Always verify through official channels.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============ ABOUT MODAL ============ -->
+  <div class="modal" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
+    <div class="modal-box">
+      <h2 id="aboutTitle">About ScamShield AI</h2>
+      <p><strong>Protect before you pay.</strong> Paste a suspicious message or link and see why it may be risky.</p>
+      <ul class="plain-list">
+        <li>This prototype uses transparent, rule-based checks. It is not a trained AI model.</li>
+        <li>It does not connect to banks, verify senders or open links.</li>
+        <li>The score shows how many warning signs matched. It is not the chance that something is a fraud.</li>
+      </ul>
+      <div class="actions">
+        <button class="btn btn-primary" id="closeAbout" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional: chart library. The app still works if this fails to load. -->
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+ <script src="script.js" defer></script>
+ <script src="auth.js" defer></script>
+</body>
+</html>
