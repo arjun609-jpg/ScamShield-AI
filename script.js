@@ -14,8 +14,10 @@
 
   let mode = "message";
   let history = [];
+  let historyFilter = "all";
+  let historySearch = "";
   let lastResult = null;
-  let chart = null;
+  let chart = null;})
   
   
   /* Counts a number up (or down) inside an element, e.g. 0 -> 68. */
@@ -460,6 +462,79 @@ function detectScamCategory(text) {
   /* ------------------------------------------------------------
      5. Rendering the result
   ------------------------------------------------------------ */
+    /* ----- Mark the suspicious parts inside the user's message ----- */
+  const LINK_RE = /(?:https?:\/\/|www\.)[^\s<>"']*[^\s<>"'.,;:!?)\]]|\b(?:bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly|rb\.gy|ow\.ly|shorturl\.at)\/[^\s<>"']*[^\s<>"'.,;:!?)\]]/;
+  const SECRET = "(?:otp|one[- ]time password|upi[- ]?pin|m-?pin|pin|cvv|cvc|password|passcode|card number)";
+  const ASK_VERB = "(?:share|send|tell|give|provide|enter|submit|reply|forward|read out|disclose|batao|bata|bhejo)";
+
+  // "rules" = rule titles from MESSAGE_RULES. A pattern is used only when one of its rules matched.
+  const HIGHLIGHT_PATTERNS = [
+    { rules: ["Asks for OTP, UPI PIN, CVV or password"], cls: "hl-danger", tip: "Asks for a secret code",
+      re: new RegExp(`\\b${ASK_VERB}\\b[^.!?\\n]{0,40}?\\b${SECRET}\\b|\\b${SECRET}\\b[^.!?\\n]{0,40}\\b(?:share|send|reply|forward)\\b`, "i") },
+    { rules: ["Mentions a remote-access or screen-sharing tool"], cls: "hl-danger", tip: "Remote-access or screen-sharing tool",
+      re: /anydesk|teamviewer|quick ?support|airdroid|rustdesk|screen[- ]?shar\w*|remote (?:access|support|control)|\S+\.apk\b|install (?:this|the) app/i },
+    { rules: ["Digital arrest or fake courier / agency threat"], cls: "hl-danger", tip: "Fake agency or arrest threat",
+      re: /digital arrest|arrest warrant|money laundering case|stay on (?:the )?(?:video )?call|(?:do not|don't) (?:disconnect|tell anyone)|\b(?:cbi|ncb|customs|narcotics|cyber ?crime|trai)\b\s+(?:officer|department|team|case|notice)/i },
+    { rules: ["Threatens to block or suspend your account"], cls: "hl-warn", tip: "Threat to block your account",
+      re: /\b(?:account|card|upi|wallet|sim|service|number)\b[^.!?\n]{0,40}\b(?:blocked|suspended|deactivated|frozen|closed|terminated|disabled|restricted)\b|will be (?:blocked|suspended|deactivated|closed)|khata band/i },
+    { rules: ["Urgent or pressuring language"], cls: "hl-warn", tip: "Pressure to act fast",
+      re: /\burgent(?:ly)?\b|immediately|\bimmediate\b|\binstantly\b|right now|\basap\b|act now|do not delay|don't delay|last chance|expires? (?:today|soon|in)|within \d+ ?(?:hours?|hrs?|minutes?|mins?)|turant|jaldi|\babhi\b|account (?:is )?at risk/i },
+    { rules: ["Unexpected refund, QR code or payment request"], cls: "hl-warn", tip: "Unexpected refund or payment request",
+      re: /refund|cashback|collect request|\bqr\b|accept (?:the )?(?:request|payment)/i },
+    { rules: ["Unexpected KYC or identity update"], cls: "hl-warn", tip: "Unexpected KYC or identity update",
+      re: /\bkyc\b|re-?kyc|verify (?:your )?(?:identity|account|details)|update (?:your )?(?:details|pan|aadhaar)/i },
+    { rules: ["Prize, lottery or reward language"], cls: "hl-warn", tip: "Prize or reward bait",
+      re: /lottery|jackpot|\bprize\b|you(?:'ve| have) won|lucky draw|gift card|free (?:gift|recharge)/i },
+    { rules: ["Pretends to be support or an authority"], cls: "hl-warn", tip: "Pretends to be support or an authority",
+      re: /customer care|support (?:agent|executive)|bank (?:officer|manager|executive|official)|\b(?:rbi|npci|cbi|police|cyber cell|income tax)\b/i },
+    { rules: ["Promises instant or easy money"], cls: "hl-warn", tip: "Easy-money promise",
+      re: /easy money|instant (?:cash|money|payout)|(?:get|earn|win|receive)\s+(?:rs\.?|₹|inr)?\s*\d[\d,]{3,}(?:\s*(?:rupees|rs|inr)\b)?|paise kamao|ghar baithe (?:kamao|earn)|turant paise/i },
+    { rules: ["Mentions betting, gambling or prediction games"], cls: "hl-warn", tip: "Betting or gambling bait",
+      re: /\bbetting\b|\bcasino\b|\bsatta\b|\bmatka\b|teen ?patti|\baviator\b|colou?r prediction|online rummy/i },
+    { rules: ["Guaranteed returns or investment promise"], cls: "hl-warn", tip: "Guaranteed-profit promise",
+      re: /guaranteed (?:returns?|profit)|double your (?:money|investment)|(?:paisa|paise|money) double|risk[- ]?free (?:investment|trading|returns?)|daily (?:profit|returns?|income)|fixed returns?|100% (?:profit|returns?)|\bvip (?:group|channel)\b/i },
+    { rules: ["Fake job or task-based earning offer"], cls: "hl-warn", tip: "Fake job or task offer",
+      re: /part[- ]?time (?:job|work|task)|registration fee|joining fee|data entry job|task[- ]based (?:job|earning)/i },
+    { rules: ["Instant or pre-approved loan offer"], cls: "hl-warn", tip: "Instant loan bait",
+      re: /instant loan|pre[- ]?approved (?:loan|credit|limit)|processing fee|advance fee/i },
+    { rules: ["Contains an external link", "Shortened link", "Link with a possibly deceptive domain"], cls: "hl-link", tip: "Link: do not tap it",
+      re: LINK_RE }
+  ];
+
+  function renderFlagged(r) {
+    const box = $("flaggedBox");
+    const out = $("flaggedText");
+    out.textContent = "";
+    if (r.mode !== "message" || !r.input) { box.hidden = true; return; }
+
+    const hit = new Set(r.indicators.map((i) => i.title));
+    const ranges = [];
+    HIGHLIGHT_PATTERNS.forEach((p) => {
+      if (!p.rules.some((t) => hit.has(t))) return;
+      const re = new RegExp(p.re.source, "gi");
+      let m;
+      while ((m = re.exec(r.input)) !== null) {
+        if (m[0].length === 0) { re.lastIndex++; continue; }
+        ranges.push({ start: m.index, end: m.index + m[0].length, cls: p.cls, tip: p.tip });
+      }
+    });
+    if (ranges.length === 0) { box.hidden = true; return; }
+
+    ranges.sort((a, b) => a.start - b.start || b.end - a.end);
+    let pos = 0;
+    ranges.forEach((rg) => {
+      if (rg.start < pos) return;   // overlaps a part that is already marked
+      if (rg.start > pos) out.appendChild(document.createTextNode(r.input.slice(pos, rg.start)));
+      const mark = document.createElement("mark");
+      mark.className = "hl " + rg.cls;
+      mark.title = rg.tip;
+      mark.textContent = r.input.slice(rg.start, rg.end);   // textContent keeps the user's text safe
+      out.appendChild(mark);
+      pos = rg.end;
+    });
+    if (pos < r.input.length) out.appendChild(document.createTextNode(r.input.slice(pos)));
+    box.hidden = false;
+  }
   function renderResult(r) {
     lastResult = r;
     $("resultPanel").dataset.level = r.level;
@@ -491,6 +566,7 @@ function detectScamCategory(text) {
     } else {
       r.indicators.forEach((i) => list.appendChild(makeIndicator(`${i.title} (+${i.points})`, i.why)));
     }
+     renderFlagged(r);
     $("resultPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
@@ -526,13 +602,19 @@ function detectScamCategory(text) {
     if (!db || !userId) return;
     setCloudStatus("Loading your scans…");
     const { data, error } = await db.from("scans")
-      .select("created_at, mode, input, score, level, indicators, links")
+      .select("id,created_at, mode, input, score, level, indicators, links")
       .order("created_at", { ascending: false })
       .limit(MAX_HISTORY);
     if (error) { setCloudStatus("Could not load your saved scans. Check your connection."); return; }
     history = data.map((row) => ({
-      t: row.created_at, mode: row.mode, input: row.input, score: row.score, level: row.level,
-      indicators: row.indicators || [], links: row.links || 0
+      id: row.id,
+      t: row.created_at,
+      mode: row.mode,
+      input: row.input,
+      score: row.score,
+      level: row.level,
+      indicators: row.indicators || [],
+      links: row.links || 0
     }));
     setCloudStatus("");
   }
@@ -542,50 +624,104 @@ function detectScamCategory(text) {
       t: r.time, mode: r.mode, input: r.input.slice(0, 500), score: r.score, level: r.level,
       indicators: r.indicators.map((i) => i.title), links: r.links
     };
-    history.unshift(entry);
-    history = history.slice(0, MAX_HISTORY);
-    if (!db || !userId) return;
-    // user_id is filled in by the database from the login session, so it cannot be faked.
-    db.from("scans")
-      .insert({ mode: entry.mode, input: entry.input, score: entry.score, level: entry.level,
-                indicators: entry.indicators, links: entry.links })
-      .then(({ error }) => { if (error) setCloudStatus("This scan could not be saved to your account."); });
-  }
+   history.unshift({
+  id: (crypto.randomUUID
+    ? crypto.randomUUID()
+    : Date.now() + "-" + Math.random().toString(16).slice(2)),
+  t: r.time,
+  mode: r.mode,
+  input: r.input.slice(0, 500),
+  score: r.score,
+  level: r.level,
+  indicators: r.indicators.map((i) => i.title),
+  links: r.links
+});
 
   function fmtTime(iso) {
     return new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
   function renderHistory() {
-    const body = $("historyBody");
-    body.textContent = "";
-    history.forEach((h) => {
-      const tr = document.createElement("tr");
+  const body = $("historyBody");
+  body.textContent = "";
 
-      const tdInput = document.createElement("td");
-      tdInput.textContent = h.input.length > 70 ? h.input.slice(0, 70) + "…" : h.input;
-      tdInput.title = h.input;
+  const filteredHistory = history.filter((h) => {
+    const matchesFilter =
+      historyFilter === "all" ||
+      h.level === historyFilter;
 
-      const tdType = document.createElement("td");
-      tdType.textContent = h.mode === "url" ? "URL" : "Message";
+    const searchText = historySearch.toLowerCase();
 
-      const tdRisk = document.createElement("td");
-      const pill = document.createElement("span");
-      pill.className = "pill " + h.level;
-      pill.textContent = LABELS[h.level] || h.level;
-      tdRisk.appendChild(pill);
+    const matchesSearch =
+      !searchText ||
+      h.input.toLowerCase().includes(searchText) ||
+      h.mode.toLowerCase().includes(searchText) ||
+      (h.indicators || []).some((item) =>
+        item.toLowerCase().includes(searchText)
+      );
 
-      const tdScore = document.createElement("td");
-      tdScore.textContent = String(h.score);
+    return matchesFilter && matchesSearch;
+  });
 
-      const tdTime = document.createElement("td");
-      tdTime.textContent = fmtTime(h.t);
+  filteredHistory.forEach((h) => {
+    const tr = document.createElement("tr");
 
-      tr.append(tdInput, tdType, tdRisk, tdScore, tdTime);
-      body.appendChild(tr);
-    });
-    $("historyEmpty").hidden = history.length > 0;
+    const tdInput = document.createElement("td");
+    tdInput.textContent =
+      h.input.length > 70 ? h.input.slice(0, 70) + "…" : h.input;
+    tdInput.title = h.input;
+
+    const tdType = document.createElement("td");
+    tdType.textContent = h.mode === "url" ? "URL" : "Message";
+
+    const tdRisk = document.createElement("td");
+    const pill = document.createElement("span");
+    pill.className = "pill " + h.level;
+    pill.textContent = LABELS[h.level] || h.level;
+    tdRisk.appendChild(pill);
+
+    const tdScore = document.createElement("td");
+    tdScore.textContent = String(h.score);
+
+    const tdTime = document.createElement("td");
+    tdTime.textContent = fmtTime(h.t);
+
+    const tdAction = document.createElement("td");
+    const deleteBtn = document.createElement("button");
+
+    deleteBtn.type = "button";
+    deleteBtn.className = "history-delete";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.dataset.deleteId = h.id;
+    deleteBtn.setAttribute("aria-label", "Delete this scan");
+
+    tdAction.appendChild(deleteBtn);
+
+    tr.append(tdInput, tdType, tdRisk, tdScore, tdTime, tdAction);
+    body.appendChild(tr);
+  });
+
+  $("historyEmpty").hidden = history.length > 0;
+
+  let emptyMessage = $("historyFilterEmpty");
+
+  if (!emptyMessage) {
+    emptyMessage = document.createElement("p");
+    emptyMessage.id = "historyFilterEmpty";
+    emptyMessage.className = "history-empty-filter";
+    $("historyEmpty").after(emptyMessage);
   }
+
+  emptyMessage.hidden = filteredHistory.length > 0 || history.length === 0;
+  emptyMessage.textContent = "No scans match your search or selected filter.";
+
+  document.querySelectorAll(".history-filter").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.filter === historyFilter
+    );
+  });
+}
 
   function renderStats() {
     animateNumber($("statTotal"), history.length, 700);
@@ -867,7 +1003,17 @@ function detectScamCategory(text) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+    function deleteHistoryItem(id) {
+  const item = history.find((h) => h.id === id);
 
+  if (!item) return;
+
+  if (confirm("Delete this scan from your history?")) {
+    history = history.filter((h) => h.id !== id);
+    saveHistory();
+    refreshDashboard();
+  }
+}
    async function clearHistory() {
     if (history.length === 0 || !db) return;
     if (!confirm("Delete all your saved scans? This cannot be undone.")) return;
@@ -940,6 +1086,28 @@ function detectScamCategory(text) {
     $("newScanBtn").addEventListener("click", () => { clearInput(); resetResult(); $("scanInput").focus(); });
     $("exportBtn").addEventListener("click", exportCsv);
     $("clearHistoryBtn").addEventListener("click", clearHistory);
+      // History filter buttons
+     document.querySelectorAll(".history-filter").forEach((button) => {
+      button.addEventListener("click", () => {
+       historyFilter = button.dataset.filter;
+       renderHistory();
+     });
+     });
+
+   // History search
+    $("historySearch").addEventListener("input", (e) => {
+    historySearch = e.target.value.trim();
+    renderHistory();
+    });
+
+   // Delete individual history item
+   $("historyBody").addEventListener("click", (e) => {
+   const button = e.target.closest("[data-delete-id]");
+
+     if (button) {
+     deleteHistoryItem(button.dataset.deleteId);
+    }
+    });
 
     $("menuToggle").addEventListener("click", () => {
       $("sidebar").classList.contains("open") ? closeSidebar() : openSidebar();
@@ -982,4 +1150,4 @@ function detectScamCategory(text) {
   };
 
   init();
-})();
+};
