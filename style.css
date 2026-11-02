@@ -548,3 +548,23 @@ td:first-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; wh
 :root[data-theme="light"] .auth-msg.error { color: #9f1239; }
 :root[data-theme="light"] .auth-msg.success { color: #065f46; }
 :root[data-theme="light"] .auth-msg.info { color: #155e75; }
+
+/* ============ Highlighted message ============ */
+.flagged { margin: 0 0 18px; }
+.flagged-text {
+  margin: 0; padding: 12px 14px; border-radius: 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8;
+}
+.hl { padding: 1px 4px; border-radius: 5px; color: inherit; cursor: help; }
+.hl-danger { background: color-mix(in srgb, var(--red) 28%, transparent); box-shadow: inset 0 -2px 0 var(--red); }
+.hl-warn   { background: color-mix(in srgb, var(--amber) 26%, transparent); box-shadow: inset 0 -2px 0 var(--amber); }
+.hl-link   { background: color-mix(in srgb, var(--cyan) 22%, transparent); box-shadow: inset 0 -2px 0 var(--cyan); }
+.flagged-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: .82rem; color: var(--muted); }
+.flagged-legend span[class]::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px;
+  border-radius: 3px; vertical-align: -1px;
+}
+.legend-danger::before { background: var(--red); }
+.legend-warn::before   { background: var(--amber); }
+.legend-link::before   { background: var(--cyan); }

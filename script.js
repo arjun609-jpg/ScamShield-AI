@@ -614,7 +614,16 @@ function detectScamCategory(text) {
     return { labels: labels, counts: counts };
   }
 
-  function renderChart() {
+  function chartColors() {
+    const css = getComputedStyle(document.documentElement);
+    return {
+      text: css.getPropertyValue("--muted").trim(),
+      grid: css.getPropertyValue("--border").trim(),
+      bar: css.getPropertyValue("--cyan").trim()
+    };
+  }
+
+    function renderChart() {
     const canvas = $("activityChart");
     if (typeof Chart === "undefined") {
       canvas.hidden = true;
@@ -622,26 +631,34 @@ function detectScamCategory(text) {
       return;
     }
     const data = last7Days();
+    const c = chartColors();
     if (!chart) {
       chart = new Chart(canvas, {
         type: "bar",
         data: { labels: data.labels,
-          datasets: [{ label: "Scans", data: data.counts, backgroundColor: "#22d3ee", borderRadius: 6 }] },
+          datasets: [{ label: "Scans", data: data.counts, backgroundColor: c.bar, borderRadius: 6 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: "#8fa0c7" }, grid: { display: false } },
-            y: { beginAtZero: true, ticks: { color: "#8fa0c7", precision: 0 }, grid: { color: "#1f2d52" } }
+            x: { ticks: { color: c.text }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: c.text, precision: 0 }, grid: { color: c.grid } }
           }
         }
       });
     } else {
       chart.data.labels = data.labels;
       chart.data.datasets[0].data = data.counts;
+      chart.data.datasets[0].backgroundColor = c.bar;
+      chart.options.scales.x.ticks.color = c.text;
+      chart.options.scales.y.ticks.color = c.text;
+      chart.options.scales.y.grid.color = c.grid;
       chart.update();
     }
   }
+
+  // redraw the chart when the theme changes
+  window.addEventListener("themechange", () => { if (chart) renderChart(); });
 
   function refreshDashboard() {
     renderHistory();
