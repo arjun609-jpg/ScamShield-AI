@@ -179,6 +179,32 @@
     { points: 15, title: "Pretends to be support or an authority",
       why: "Scammers pose as bank staff, support agents or officials to gain your trust.",
       test: (t) => /customer care|\bour (?:support )?(?:agent|executive|representative|team)\b|support (?:agent|executive)|bank (?:officer|manager|executive|official)|\b(?:rbi|npci|cbi|police|cyber cell|income tax)\b[^.!?\n]{0,15}(?:officer|department|notice)/i.test(t) },
+    { points: 22, title: "Promises instant or easy money",
+      why: "Real banks and apps never hand out large amounts instantly for a small task. Easy-money promises are used to lure you into paying or sharing details.",
+      test: (t) => /easy money|instant (?:cash|money|payout)|(?:get|earn|win|receive)\s+(?:rs\.?|₹|inr)?\s*\d[\d,]{3,}\s*(?:rupees|rs|inr)?[^.!?\n]{0,40}\b(?:instantly|daily|per day|fast|in minutes)\b|paise kamao|ghar baithe (?:kamao|earn)|turant paise/i.test(t) },
+    { points: 26, title: "Mentions betting, gambling or prediction games",
+      why: "Betting and prediction apps are a common bait: they show small early wins, then push you to deposit more money that you cannot withdraw.",
+      test: (t) => /\bbetting\b|\bcasino\b|\bsatta\b|\bmatka\b|teen ?patti|\baviator\b|colou?r prediction|online rummy|\bbet(?:ting)? (?:app|id|site)\b/i.test(t) },
+    { points: 28, title: "Guaranteed returns or investment promise",
+      why: "No genuine investment can guarantee profit. Fake trading groups show fake profits to make you invest more.",
+      test: (t) => /guaranteed (?:returns?|profit)|double your (?:money|investment)|(?:paisa|paise|money) double|risk[- ]?free (?:investment|trading|returns?)|daily (?:profit|returns?|income)|fixed returns?|100% (?:profit|returns?)|\bvip (?:group|channel)\b|stock tips? group/i.test(t) },
+    { points: 30, title: "Fake job or task-based earning offer",
+      why: "Real employers do not charge a fee to give you a job. Task scams pay small amounts first, then ask you to deposit money.",
+      test: (t) => /(?:like|subscribe|rate|review)s?\b[^.!?\n]{0,30}\b(?:earn|paid)\b|part[- ]?time (?:job|work|task)|work from home[^.!?\n]{0,40}(?:earn|income|salary|₹|rs)|registration fee|joining fee|(?:job|naukri)[^.!?\n]{0,30}(?:fee|deposit)|data entry job|task[- ]based (?:job|earning)/i.test(t) },
+    { points: 40, title: "Digital arrest or fake courier / agency threat",
+      why: "Police, CBI or customs never arrest anyone over a video call or ask you to keep the call on. This is a pressure scam.",
+      test: (t) => /digital arrest|(?:parcel|courier|package)[^.!?\n]{0,60}(?:drugs?|illegal|narcotics?|contraband|seized)|\b(?:cbi|ncb|customs|narcotics|cyber ?crime|trai)\b\s+(?:officer|department|team|case|notice)|arrest warrant|money laundering case|stay on (?:the )?(?:video )?call|(?:do not|don't) (?:disconnect|tell anyone)/i.test(t) },
+    { points: 26, title: "Instant or pre-approved loan offer",
+      why: "Fake loan apps ask for a processing fee or access to your contacts and photos before any money arrives.",
+      test: (t) => /instant loan|pre[- ]?approved (?:loan|credit|limit)|loan (?:approved|without documents|in \d+ minutes)|no (?:documents?|cibil|credit check)[^.!?\n]{0,20}loan|loan[^.!?\n]{0,30}no (?:documents?|cibil)|(?:loan|credit limit)[^.!?\n]{0,40}(?:processing|advance) fee/i.test(t) },
+
+
+
+
+
+
+
+
     { points: 24, title: "Link with a possibly deceptive domain",
       why: "The link contains bank or payment words, a lookalike name or other tricks that scam sites use to look genuine.",
       test: (t, c) => c.urls.some((f) => f.brand || f.lookalike || f.ip || f.userinfo) },
@@ -331,6 +357,18 @@ const SCAM_CATEGORY_RULES = [
       "parcel rok diya", "पार्सल शुल्क",
       "डिलीवरी के लिए भुगतान", "पार्सल रोक दिया"
     ]
+  },
+    {
+    name: "Betting / Easy Money Scam",
+    keywords: ["start betting", "betting app", "instant money", "easy money", "paise kamao", "ghar baithe kamao"]
+  },
+  {
+    name: "Digital Arrest / Fake Agency Scam",
+    keywords: ["digital arrest", "arrest warrant", "stay on the call", "cbi officer", "customs officer", "money laundering case"]
+  },
+  {
+    name: "Loan App Scam",
+    keywords: ["instant loan", "pre-approved loan", "processing fee", "no documents"]
   }
 ];
 
