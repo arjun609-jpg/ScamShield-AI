@@ -498,3 +498,53 @@ td:first-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; wh
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 #analyseBtn:disabled { opacity: .7; cursor: wait; }
 @media (prefers-reduced-motion: reduce) { .scan-ring, .shimmer { animation: none; } }
+
+
+/* ============ Light / dark theme toggle ============ */
+:root { color-scheme: dark; }
+
+.theme-toggle { width: 40px; height: 40px; padding: 0; font-size: 1.1rem; line-height: 1; }
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f5fb;
+  --panel: #ffffff;
+  --panel-2: #eaf0fa;
+  --border: #d5ddf0;
+  --text: #0f1d44;
+  --muted: #53648e;
+  --cyan: #0891b2;
+  --blue: #2563eb;
+  --green: #059669;
+  --amber: #d97706;
+  --red: #e11d48;
+}
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(700px 420px at 85% -5%, rgba(59, 130, 246, .14), transparent 60%),
+    radial-gradient(600px 380px at 0% 105%, rgba(8, 145, 178, .10), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+:root[data-theme="light"] .sidebar { background: #ffffff; }
+:root[data-theme="light"] .topbar { background: rgba(241, 245, 251, .9); }
+:root[data-theme="light"] .card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(247, 250, 255, .78));
+  border-color: rgba(37, 99, 235, .14);
+  box-shadow: 0 10px 30px rgba(30, 58, 120, .10), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+:root[data-theme="light"] .card:hover {
+  border-color: rgba(8, 145, 178, .45);
+  box-shadow: 0 14px 38px rgba(30, 58, 120, .14), 0 0 24px rgba(8, 145, 178, .10), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+:root[data-theme="light"] .auth-aside {
+  background: radial-gradient(900px 500px at 10% 0%, rgba(8, 145, 178, .16), transparent 60%), #e8f0fb;
+}
+:root[data-theme="light"] .detection-label { color: var(--muted); }
+:root[data-theme="light"] .detection-value { color: var(--text); }
+:root[data-theme="light"] .category-badge { color: #0e7490; }
+:root[data-theme="light"] textarea::placeholder { color: #7d8db3; }
+:root[data-theme="light"] .error,
+:root[data-theme="light"] .auth-msg.error { color: #9f1239; }
+:root[data-theme="light"] .auth-msg.success { color: #065f46; }
+:root[data-theme="light"] .auth-msg.info { color: #155e75; }
