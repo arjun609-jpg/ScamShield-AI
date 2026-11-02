@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="theme.js"></script>
+  
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -377,23 +377,7 @@
             </div>
           </div>
 
-          <!-- History filters and search -->
-         <div class="history-tools">
-         <div class="history-filters" role="group" aria-label="Filter scan history">
-           <button class="history-filter active" type="button" data-filter="all">All</button>
-           <button class="history-filter" type="button" data-filter="high">High</button>
-           <button class="history-filter" type="button" data-filter="critical">Critical</button>
-          </div>
-
-         <input
-          type="search"
-          id="historySearch"
-          class="history-search"
-          placeholder="Search messages or URLs..."
-          aria-label="Search scan history"
-            >
-        </div>
-
+          
           <div class="table-wrap">
             <table>
               <caption class="sr-only">Recent scans</caption>
@@ -404,7 +388,7 @@
                   <th scope="col">Risk</th>
                   <th scope="col">Score</th>
                   <th scope="col">Time</th>
-                  <th scope="col">Action</th>
+                  
                 </tr>
               </thead>
               <tbody id="historyBody"></tbody>
@@ -494,5 +478,6 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
  <script src="script.js" defer></script>
  <script src="auth.js" defer></script>
+ <script src="theme.js"></script>
 </body>
 </html>

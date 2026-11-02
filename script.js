@@ -17,8 +17,8 @@
   let historyFilter = "all";
   let historySearch = "";
   let lastResult = null;
-  let chart = null;})
-  
+  let chart = null;
+
   
   /* Counts a number up (or down) inside an element, e.g. 0 -> 68. */
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -602,12 +602,11 @@ function detectScamCategory(text) {
     if (!db || !userId) return;
     setCloudStatus("Loading your scans…");
     const { data, error } = await db.from("scans")
-      .select("id,created_at, mode, input, score, level, indicators, links")
+      .select("created_at, mode, input, score, level, indicators, links")
       .order("created_at", { ascending: false })
       .limit(MAX_HISTORY);
     if (error) { setCloudStatus("Could not load your saved scans. Check your connection."); return; }
     history = data.map((row) => ({
-      id: row.id,
       t: row.created_at,
       mode: row.mode,
       input: row.input,
@@ -624,104 +623,61 @@ function detectScamCategory(text) {
       t: r.time, mode: r.mode, input: r.input.slice(0, 500), score: r.score, level: r.level,
       indicators: r.indicators.map((i) => i.title), links: r.links
     };
-   history.unshift({
-  id: (crypto.randomUUID
-    ? crypto.randomUUID()
-    : Date.now() + "-" + Math.random().toString(16).slice(2)),
-  t: r.time,
-  mode: r.mode,
-  input: r.input.slice(0, 500),
-  score: r.score,
-  level: r.level,
-  indicators: r.indicators.map((i) => i.title),
-  links: r.links
-});
-
+     history.unshift(entry);
+    history = history.slice(0, MAX_HISTORY);
+    if (!db || !userId) return;
+    // user_id is filled in by the database from the login session, so it cannot be faked.
+    db.from("scans")
+      .insert({ mode: entry.mode, input: entry.input, score: entry.score, level: entry.level,
+                indicators: entry.indicators, links: entry.links })
+      .then(({ error }) => { if (error) setCloudStatus("This scan could not be saved to your account."); });
+  }
+  
   function fmtTime(iso) {
     return new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
-  function renderHistory() {
-  const body = $("historyBody");
-  body.textContent = "";
+  
+function renderHistory() {
+    const body = $("historyBody");
+    body.textContent = "";
 
-  const filteredHistory = history.filter((h) => {
-    const matchesFilter =
-      historyFilter === "all" ||
-      h.level === historyFilter;
+    history.forEach((h) => {
+        const tr = document.createElement("tr");
 
-    const searchText = historySearch.toLowerCase();
+        // Scan input
+        const tdInput = document.createElement("td");
+        tdInput.textContent = h.input.length > 70
+            ? h.input.slice(0, 70) + "…"
+            : h.input;
+        tdInput.title = h.input;
 
-    const matchesSearch =
-      !searchText ||
-      h.input.toLowerCase().includes(searchText) ||
-      h.mode.toLowerCase().includes(searchText) ||
-      (h.indicators || []).some((item) =>
-        item.toLowerCase().includes(searchText)
-      );
+        // Scan type
+        const tdType = document.createElement("td");
+        tdType.textContent = h.mode === "url" ? "URL" : "Message";
 
-    return matchesFilter && matchesSearch;
-  });
+        // Risk level
+        const tdRisk = document.createElement("td");
+        tdRisk.textContent = h.level || "Unknown";
 
-  filteredHistory.forEach((h) => {
-    const tr = document.createElement("tr");
+        // Risk score
+        const tdScore = document.createElement("td");
+        tdScore.textContent = (h.score ?? 0) + "/100";
 
-    const tdInput = document.createElement("td");
-    tdInput.textContent =
-      h.input.length > 70 ? h.input.slice(0, 70) + "…" : h.input;
-    tdInput.title = h.input;
+        // Scan time
+        const tdTime = document.createElement("td");
+        tdTime.textContent = fmtTime(h.t);
 
-    const tdType = document.createElement("td");
-    tdType.textContent = h.mode === "url" ? "URL" : "Message";
+        tr.append(tdInput, tdType, tdRisk, tdScore, tdTime);
+        body.appendChild(tr);
+    });
 
-    const tdRisk = document.createElement("td");
-    const pill = document.createElement("span");
-    pill.className = "pill " + h.level;
-    pill.textContent = LABELS[h.level] || h.level;
-    tdRisk.appendChild(pill);
-
-    const tdScore = document.createElement("td");
-    tdScore.textContent = String(h.score);
-
-    const tdTime = document.createElement("td");
-    tdTime.textContent = fmtTime(h.t);
-
-    const tdAction = document.createElement("td");
-    const deleteBtn = document.createElement("button");
-
-    deleteBtn.type = "button";
-    deleteBtn.className = "history-delete";
-    deleteBtn.textContent = "Delete";
-    deleteBtn.dataset.deleteId = h.id;
-    deleteBtn.setAttribute("aria-label", "Delete this scan");
-
-    tdAction.appendChild(deleteBtn);
-
-    tr.append(tdInput, tdType, tdRisk, tdScore, tdTime, tdAction);
-    body.appendChild(tr);
-  });
-
-  $("historyEmpty").hidden = history.length > 0;
-
-  let emptyMessage = $("historyFilterEmpty");
-
-  if (!emptyMessage) {
-    emptyMessage = document.createElement("p");
-    emptyMessage.id = "historyFilterEmpty";
-    emptyMessage.className = "history-empty-filter";
-    $("historyEmpty").after(emptyMessage);
-  }
-
-  emptyMessage.hidden = filteredHistory.length > 0 || history.length === 0;
-  emptyMessage.textContent = "No scans match your search or selected filter.";
-
-  document.querySelectorAll(".history-filter").forEach((button) => {
-    button.classList.toggle(
-      "active",
-      button.dataset.filter === historyFilter
-    );
-  });
+    $("historyEmpty").hidden = history.length > 0;
 }
+
+
+  
+
 
   function renderStats() {
     animateNumber($("statTotal"), history.length, 700);
@@ -1003,17 +959,8 @@ function detectScamCategory(text) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-    function deleteHistoryItem(id) {
-  const item = history.find((h) => h.id === id);
 
-  if (!item) return;
 
-  if (confirm("Delete this scan from your history?")) {
-    history = history.filter((h) => h.id !== id);
-    saveHistory();
-    refreshDashboard();
-  }
-}
    async function clearHistory() {
     if (history.length === 0 || !db) return;
     if (!confirm("Delete all your saved scans? This cannot be undone.")) return;
@@ -1086,28 +1033,7 @@ function detectScamCategory(text) {
     $("newScanBtn").addEventListener("click", () => { clearInput(); resetResult(); $("scanInput").focus(); });
     $("exportBtn").addEventListener("click", exportCsv);
     $("clearHistoryBtn").addEventListener("click", clearHistory);
-      // History filter buttons
-     document.querySelectorAll(".history-filter").forEach((button) => {
-      button.addEventListener("click", () => {
-       historyFilter = button.dataset.filter;
-       renderHistory();
-     });
-     });
-
-   // History search
-    $("historySearch").addEventListener("input", (e) => {
-    historySearch = e.target.value.trim();
-    renderHistory();
-    });
-
-   // Delete individual history item
-   $("historyBody").addEventListener("click", (e) => {
-   const button = e.target.closest("[data-delete-id]");
-
-     if (button) {
-     deleteHistoryItem(button.dataset.deleteId);
-    }
-    });
+    
 
     $("menuToggle").addEventListener("click", () => {
       $("sidebar").classList.contains("open") ? closeSidebar() : openSidebar();
@@ -1150,4 +1076,4 @@ function detectScamCategory(text) {
   };
 
   init();
-};
+})();
