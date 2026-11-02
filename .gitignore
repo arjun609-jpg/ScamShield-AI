@@ -1,6 +1,25 @@
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+# Secrets: never commit these (Supabase service_role / secret key, DB password, tokens)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+secrets.*
+
+# Supabase CLI local files (only needed if you ever use the CLI)
+.supabase/
+supabase/.temp/
+supabase/.branches/
+
+# Dependencies and logs
 node_modules/
 *.log
+npm-debug.log*
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
