@@ -16,7 +16,23 @@
   let history = [];
   let lastResult = null;
   let chart = null;
-
+  
+  
+  /* Counts a number up (or down) inside an element, e.g. 0 -> 68. */
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function animateNumber(el, to, duration, fromZero) {
+    cancelAnimationFrame(el._countFrame);
+    const from = fromZero ? 0 : (parseInt(el.textContent, 10) || 0);
+    if (reduceMotion || from === to) { el.textContent = String(to); return; }
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);   // fast at first, slow at the end
+      el.textContent = String(Math.round(from + (to - from) * eased));
+      if (t < 1) el._countFrame = requestAnimationFrame(tick);
+    }
+    el._countFrame = requestAnimationFrame(tick);
+  }
   /* ------------------------------------------------------------
      1. Sample inputs (fictional, safe to demo)
   ------------------------------------------------------------ */
@@ -450,8 +466,11 @@ function detectScamCategory(text) {
     $("resultEmpty").hidden = true;
     $("resultBody").hidden = false;
 
-    $("scoreNumber").textContent = String(r.score);
-    $("gaugeFill").style.strokeDashoffset = String(GAUGE_LENGTH * (1 - r.score / 100));
+    animateNumber($("scoreNumber"), r.score, 800, true);
+    const fill = $("gaugeFill");
+    fill.style.strokeDashoffset = String(GAUGE_LENGTH);   // restart the ring from empty
+    void fill.getBoundingClientRect();
+    fill.style.strokeDashoffset = String(GAUGE_LENGTH * (1 - r.score / 100));
     $("riskLabel").textContent = LABELS[r.level];
     $("resultSummary").textContent = r.summary;
     // Show detected language
@@ -568,9 +587,9 @@ function detectScamCategory(text) {
   }
 
   function renderStats() {
-    $("statTotal").textContent = String(history.length);
-    $("statHigh").textContent = String(history.filter((h) => h.level === "high" || h.level === "critical").length);
-    $("statLinks").textContent = String(history.reduce((sum, h) => sum + (h.links || 0), 0));
+    animateNumber($("statTotal"), history.length, 700);
+    animateNumber($("statHigh"), history.filter((h) => h.level === "high" || h.level === "critical").length, 700);
+    animateNumber($("statLinks"), history.reduce((sum, h) => sum + (h.links || 0), 0), 700);
   }
 
   /* ------------------------------------------------------------
