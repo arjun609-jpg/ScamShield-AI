@@ -209,6 +209,44 @@ textarea:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px
 #resultPanel[data-level="high"]     { --level: var(--red); }
 #resultPanel[data-level="critical"] { --level: var(--red); }
 
+/* ---------- Risk glow: the result card follows the risk colour ---------- */
+#resultPanel[data-level] {
+  border-color: color-mix(in srgb, var(--level) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--level) 18%, transparent),
+    0 12px 40px color-mix(in srgb, var(--level) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+#resultPanel[data-level] .gauge::before {
+  content: "";
+  position: absolute; inset: -16px; z-index: -1; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--level) 30%, transparent), transparent 68%);
+}
+#resultPanel[data-level] .gauge svg { overflow: visible; }
+#resultPanel[data-level] .gauge-number {
+  text-shadow: 0 0 18px color-mix(in srgb, var(--level) 70%, transparent);
+}
+#resultPanel[data-level] .risk-badge {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--level) 35%, transparent);
+}
+
+/* Critical risk: slow pulse */
+@keyframes critical-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--level) 25%, transparent),
+                0 12px 40px color-mix(in srgb, var(--level) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--level) 60%, transparent),
+                0 12px 60px color-mix(in srgb, var(--level) 48%, transparent);
+  }
+}
+#resultPanel[data-level="critical"] { animation: critical-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  #resultPanel[data-level="critical"] { animation: none; }
+}
+
+
 .empty-state { padding: 34px 10px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; }
 .empty-title { font-family: var(--font-head); font-size: 1.1rem; color: var(--text); }
 
@@ -436,3 +474,27 @@ td:first-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; wh
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- "Analysing..." animation ---------- */
+.scanning { padding: 26px 10px 10px; text-align: center; }
+.scan-ring {
+  width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 50%;
+  border: 6px solid rgba(34, 211, 238, .15); border-top-color: var(--cyan);
+  box-shadow: 0 0 28px rgba(34, 211, 238, .25);
+  animation: scan-spin .9s linear infinite;
+}
+@keyframes scan-spin { to { transform: rotate(360deg); } }
+.scan-title { font-family: var(--font-head); font-size: 1.1rem; margin: 0 0 4px; }
+.scan-step { color: var(--muted); margin: 0 0 18px; min-height: 1.4em; }
+.scan-bars { display: grid; gap: 10px; }
+.shimmer {
+  display: block; height: 14px; border-radius: 8px;
+  background: linear-gradient(90deg, rgba(120, 150, 220, .10) 25%, rgba(34, 211, 238, .28) 50%, rgba(120, 150, 220, .10) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.1s linear infinite;
+}
+.shimmer:nth-child(2) { width: 82%; }
+.shimmer:nth-child(3) { width: 64%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+#analyseBtn:disabled { opacity: .7; cursor: wait; }
+@media (prefers-reduced-motion: reduce) { .scan-ring, .shimmer { animation: none; } }

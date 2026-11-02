@@ -505,6 +505,7 @@ function detectScamCategory(text) {
   }
 
   function resetResult() {
+    endScanning();
     lastResult = null;
     $("resultBody").hidden = true;
     $("resultEmpty").hidden = false;
@@ -709,7 +710,40 @@ function detectScamCategory(text) {
     renderSamples();
   }
 
+    /* ----- "Analysing..." animation ----- */
+  let scanTimer = null;
+  let scanStepTimer = null;
+
+  function startScanning() {
+    const steps = mode === "message"
+      ? ["Reading the message...", "Checking urgency and threat words...", "Looking for links and payment requests...", "Matching known scam patterns..."]
+      : ["Reading the link...", "Checking the domain...", "Looking for risky patterns...", "Matching known scam patterns..."];
+    let i = 0;
+    $("scanStep").textContent = steps[0];
+    $("resultEmpty").hidden = true;
+    $("resultBody").hidden = true;
+    $("scanningState").hidden = false;
+    delete $("resultPanel").dataset.level;
+    $("analyseBtn").disabled = true;
+    $("analyseBtn").textContent = "Analysing...";
+    scanStepTimer = setInterval(() => {
+      i = Math.min(i + 1, steps.length - 1);
+      $("scanStep").textContent = steps[i];
+    }, 200);
+  }
+
+  function endScanning() {
+    clearTimeout(scanTimer);
+    clearInterval(scanStepTimer);
+    scanTimer = null;
+    scanStepTimer = null;
+    $("scanningState").hidden = true;
+    $("analyseBtn").disabled = false;
+    $("analyseBtn").textContent = "Analyse";
+  }
+
   function analyse() {
+    if (scanTimer) return;   // already analysing
     hideError();
     const value = $("scanInput").value.trim();
 
@@ -733,9 +767,18 @@ function detectScamCategory(text) {
       result = scanUrl(parsed, value);
     }
 
-    renderResult(result);
-    addToHistory(result);
-    refreshDashboard();
+    const finish = () => {
+      endScanning();
+      renderResult(result);
+      addToHistory(result);
+      refreshDashboard();
+    };
+
+    const quick = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (quick) { finish(); return; }   // no animation if the person prefers reduced motion
+
+    startScanning();
+    scanTimer = setTimeout(finish, 800);
   }
 
   /* ------------------------------------------------------------

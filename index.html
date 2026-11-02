@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ScamShield AI: an explainable FinTech safety prototype that flags suspicious UPI-related messages and phishing URL patterns using client-side heuristic analysis.">
   <title>ScamShield AI | Protect before you pay</title>
-
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230b1220%22/><text x=%2250%22 y=%2270%22 font-size=%2262%22 text-anchor=%22middle%22>🛡️</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -272,7 +272,16 @@
               <p class="empty-title">No scan yet</p>
               <p>Paste a message or URL and select Analyse. You will see a risk score, the warning signs found and what to do next.</p>
             </div>
-
+              <div class="scanning" id="scanningState" hidden aria-live="polite">
+              <div class="scan-ring" aria-hidden="true"></div>
+              <p class="scan-title">Analysing...</p>
+              <p class="scan-step" id="scanStep">Reading the message...</p>
+              <div class="scan-bars" aria-hidden="true">
+                <span class="shimmer"></span>
+                <span class="shimmer"></span>
+                <span class="shimmer"></span>
+              </div>
+            </div>
             <div class="result-body" id="resultBody" hidden>
               <div class="score-row">
                 <div class="gauge" aria-hidden="true">
