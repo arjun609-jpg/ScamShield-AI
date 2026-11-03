@@ -751,11 +751,214 @@ function renderHistory() {
 
   // redraw the chart when the theme changes
   window.addEventListener("themechange", () => { if (chart) renderChart(); });
+  
+     /* ----- Extra charts: risk levels (doughnut) and top scam categories (bar) ----- */
+  let levelChart = null;
+  let categoryChart = null;
 
+  function cssColor(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function levelCounts() {
+    const c = { low: 0, moderate: 0, high: 0, critical: 0 };
+    history.forEach((h) => { if (c[h.level] !== undefined) c[h.level]++; });
+    return c;
+  }
+
+  // Categories are worked out again from the saved message text, so no database change is needed.
+  function categoryCounts() {
+    const counts = {};
+    history.forEach((h) => {
+      if (h.mode !== "message" || !h.input) return;
+      detectScamCategory(h.input).forEach((name) => {
+        if (name.indexOf("Unclassified") === 0) return;
+        counts[name] = (counts[name] || 0) + 1;
+      });
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }
+
+  // Writes the total number of scans in the middle of the doughnut.
+  const centerTextPlugin = {
+    id: "centerText",
+    afterDraw(chart) {
+      const o = chart.options.plugins.centerText;
+      if (!o) return;
+      const a = chart.chartArea;
+      const x = (a.left + a.right) / 2;
+      const y = (a.top + a.bottom) / 2;
+      const family = getComputedStyle(document.body).fontFamily;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = o.color;
+      ctx.font = "700 30px " + family;
+      ctx.fillText(String(o.total), x, y - 8);
+      ctx.fillStyle = o.sub;
+      ctx.font = "13px " + family;
+      ctx.fillText(o.total === 1 ? "scan" : "scans", x, y + 18);
+      ctx.restore();
+    }
+  };
+
+  // Writes the number at the end of each category bar.
+  const barValuePlugin = {
+    id: "barValues",
+    afterDatasetsDraw(chart) {
+      const o = chart.options.plugins.barValues;
+      if (!o) return;
+      const family = getComputedStyle(document.body).fontFamily;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = o.color;
+      ctx.font = "700 13px " + family;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        ctx.fillText(String(chart.data.datasets[0].data[i]), bar.x + 8, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  // Blue to cyan gradient for the bars (re-read on every draw, so it follows the theme).
+  function barGradient(context) {
+    const area = context.chart.chartArea;
+    if (!area) return cssColor("--cyan");
+    const g = context.chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
+    g.addColorStop(0, cssColor("--blue"));
+    g.addColorStop(1, cssColor("--cyan"));
+    return g;
+  }
+
+  function renderBreakdownCharts() {
+    const hasChart = typeof Chart !== "undefined";
+    const muted = cssColor("--muted");
+    const text = cssColor("--text");
+
+    /* Risk levels */
+    const lc = levelCounts();
+    const levelData = [lc.low, lc.moderate, lc.high, lc.critical];
+    const levelTotal = levelData.reduce((a, b) => a + b, 0);
+    const levelColors = [cssColor("--green"), cssColor("--amber"), "#f97316", cssColor("--red")];
+    $("levelWrap").hidden = !hasChart || levelTotal === 0;
+    $("levelEmpty").hidden = hasChart && levelTotal > 0;
+    $("levelEmpty").textContent = hasChart
+      ? "No scans yet. Your risk-level split will appear here."
+      : "The chart could not load (you may be offline).";
+    if (hasChart && levelTotal > 0) {
+      if (!levelChart) {
+        levelChart = new Chart($("levelChart"), {
+          type: "doughnut",
+          data: { labels: ["Low", "Moderate", "High", "Critical"],
+            datasets: [{ data: levelData, backgroundColor: levelColors, borderWidth: 0, borderRadius: 6, hoverOffset: 6 }] },
+          options: { responsive: true, maintainAspectRatio: false, cutout: "68%", spacing: 3,
+            plugins: {
+              legend: { position: "bottom", labels: { color: muted, usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 14 } },
+              centerText: { total: levelTotal, color: text, sub: muted }
+            } },
+          plugins: [centerTextPlugin]
+        });
+      } else {
+        levelChart.data.datasets[0].data = levelData;
+        levelChart.data.datasets[0].backgroundColor = levelColors;
+        levelChart.options.plugins.legend.labels.color = muted;
+        levelChart.options.plugins.centerText = { total: levelTotal, color: text, sub: muted };
+        levelChart.update();
+      }
+    }
+
+    /* Top scam categories */
+    const rows = categoryCounts();
+    $("categoryWrap").hidden = !hasChart || rows.length === 0;
+    $("categoryEmpty").hidden = hasChart && rows.length > 0;
+    $("categoryEmpty").textContent = hasChart
+      ? "No scam category found yet. Scan a suspicious message and it will show up here."
+      : "The chart could not load (you may be offline).";
+    if (hasChart && rows.length > 0) {
+      const labels = rows.map((r) => r[0]);
+      const values = rows.map((r) => r[1]);
+      const biggest = Math.max.apply(null, values);
+      if (!categoryChart) {
+        categoryChart = new Chart($("categoryChart"), {
+          type: "bar",
+          data: { labels: labels,
+            datasets: [{ label: "Scans", data: values, backgroundColor: barGradient,
+              borderRadius: 8, borderSkipped: false, barThickness: 18 }] },
+          options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
+            layout: { padding: { right: 28 } },
+            plugins: { legend: { display: false }, barValues: { color: text } },
+            scales: {
+              x: { display: false, beginAtZero: true, suggestedMax: biggest + 1 },
+              y: { grid: { display: false }, border: { display: false },
+                ticks: { color: muted, callback: function (v) {
+                  const l = this.getLabelForValue(v);
+                  return l.length > 24 ? l.slice(0, 23) + "…" : l;
+                } } }
+            } },
+          plugins: [barValuePlugin]
+        });
+      } else {
+        categoryChart.data.labels = labels;
+        categoryChart.data.datasets[0].data = values;
+        categoryChart.options.scales.x.suggestedMax = biggest + 1;
+        categoryChart.options.scales.y.ticks.color = muted;
+        categoryChart.options.plugins.barValues = { color: text };
+        categoryChart.update();
+      }
+    }
+  }
+
+  // redraw with the right colours when the theme is switched
+  window.addEventListener("themechange", () => { if (levelChart || categoryChart) renderBreakdownCharts(); });
+
+  /* ----- Recent scans card (fills the space under the scanner) ----- */
+  function renderRecent() {
+    const list = $("recentList");
+    list.textContent = "";
+    const items = history.slice(0, 20);
+    $("recentEmpty").hidden = items.length > 0;
+    items.forEach((h) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "recent-item";
+
+      const badge = document.createElement("span");
+      badge.className = "recent-badge level-" + h.level;
+      badge.textContent = String(h.score);
+
+      const body = document.createElement("span");
+      body.className = "recent-body";
+      const text = document.createElement("span");
+      text.className = "recent-text";
+      text.textContent = h.input;
+      const meta = document.createElement("span");
+      meta.className = "recent-meta";
+      meta.textContent = (h.mode === "url" ? "URL" : "Message") + " · " + fmtTime(h.t);
+      body.appendChild(text);
+      body.appendChild(meta);
+
+      btn.appendChild(badge);
+      btn.appendChild(body);
+      btn.addEventListener("click", () => {
+        setMode(h.mode === "url" ? "url" : "message");
+        $("scanInput").value = h.input;
+        updateCounter();
+        $("scanInput").focus();
+      });
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
   function refreshDashboard() {
     renderHistory();
     renderStats();
     renderChart();
+    renderBreakdownCharts();
+    renderRecent();
   }
 
   /* ------------------------------------------------------------

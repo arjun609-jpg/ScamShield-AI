@@ -569,3 +569,71 @@ td:first-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; wh
 .legend-warn::before   { background: var(--amber); }
 .legend-link::before   { background: var(--cyan); }
 
+
+/* ============ Breakdown charts ============ */
+main { grid-template-columns: minmax(0, 1fr); }   /* charts can never widen the page */
+.breakdown { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 22px; margin-top: 22px; }
+.breakdown > .card { min-width: 0; }
+.breakdown .chart-wrap { min-width: 0; overflow: hidden; }
+.chart-wrap-sm { height: 220px; }
+@media (max-width: 1100px) { .breakdown { grid-template-columns: minmax(0, 1fr); } }
+
+
+
+/* ============ Recent scans card: fills the space under the scanner ============ */
+.workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 1100px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1101px) {
+  .workspace { grid-template-rows: auto 1fr; }
+  .workspace > .result { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; }
+  .workspace > .recent { grid-column: 1; grid-row: 2; align-self: stretch; }
+}
+.recent { min-width: 0; }
+.recent h2 { margin-bottom: 12px; }
+.recent-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.recent-list li { min-width: 0; }
+.recent-item {
+  width: 100%; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left;
+  font: inherit; color: var(--text); cursor: pointer;
+  padding: 10px 12px; border-radius: 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  transition: border-color .2s ease, transform .2s ease;
+}
+.recent-item:hover { border-color: var(--cyan); transform: translateX(2px); }
+.recent-badge {
+  flex: none; min-width: 46px; padding: 6px 0; text-align: center; border-radius: 10px; font-weight: 700;
+  color: var(--lv); border: 1px solid var(--lv); background: color-mix(in srgb, var(--lv) 14%, transparent);
+}
+.recent-badge.level-low { --lv: var(--green); }
+.recent-badge.level-moderate { --lv: var(--amber); }
+.recent-badge.level-high { --lv: #f97316; }
+.recent-badge.level-critical { --lv: var(--red); }
+.recent-body { display: flex; flex-direction: column; min-width: 0; }
+.recent-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-meta { font-size: .8rem; color: var(--muted); }
+
+/* ============ Nicer chart cards ============ */
+.breakdown h2 { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; }
+.breakdown h2::before {
+  content: ""; width: 10px; height: 10px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+.chart-wrap-sm { height: 250px; }
+
+/* ============ Recent scans: height follows the result card, list scrolls ============ */
+.recent-list {
+  max-height: 420px; overflow-y: auto; padding-right: 6px;
+  scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--cyan) 45%, transparent) transparent;
+}
+.recent-list::-webkit-scrollbar { width: 8px; }
+.recent-list::-webkit-scrollbar-track { background: transparent; }
+.recent-list::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--cyan) 40%, transparent); border-radius: 8px; }
+.recent-list::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--cyan) 70%, transparent); }
+
+@media (min-width: 1101px) {
+  .workspace > .result { display: flex; flex-direction: column; }
+  .workspace > .result .empty-state { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .workspace > .recent { display: flex; flex-direction: column; min-height: 250px; contain: size; }
+  .recent-list { flex: 1; min-height: 0; max-height: none; }
+}

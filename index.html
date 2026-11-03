@@ -339,6 +339,13 @@
               <p class="hint" id="copyStatus" role="status"></p>
             </div>
           </div>
+          
+          <!-- Recent scans -->
+          <div class="card recent" id="recentCard">
+            <h2>Recent scans</h2>
+            <ul class="recent-list" id="recentList"></ul>
+            <p class="hint" id="recentEmpty">Your last scans will appear here. Select one to load it back into the scanner.</p>
+          </div>
         </section>
 
         <!-- ============ CHART + REMINDERS ============ -->
@@ -361,7 +368,31 @@
               <li>Type the website address yourself or use the official app.</li>
             </ul>
           </div>
+          
         </section>
+         
+         
+        
+        <!-- ============ BREAKDOWN CHARTS ============ -->
+        <section class="breakdown" aria-label="Scan breakdown">
+          <div class="card chart-card">
+            <h2>Risk levels</h2>
+            <div class="chart-wrap chart-wrap-sm" id="levelWrap" hidden>
+              <canvas id="levelChart" aria-label="Doughnut chart of your scans by risk level" role="img"></canvas>
+            </div>
+            <p class="hint" id="levelEmpty">No scans yet. Your risk-level split will appear here.</p>
+          </div>
+
+          <div class="card chart-card">
+            <h2>Top scam categories</h2>
+            <div class="chart-wrap chart-wrap-sm" id="categoryWrap" hidden>
+              <canvas id="categoryChart" aria-label="Bar chart of your most common scam categories" role="img"></canvas>
+            </div>
+            <p class="hint" id="categoryEmpty">No scam category found yet. Scan a suspicious message and it will show up here.</p>
+          </div>
+        </section>
+
+
 
         <!-- ============ HISTORY ============ -->
         <section class="card history" id="history" aria-labelledby="historyTitle">
