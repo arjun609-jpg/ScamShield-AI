@@ -146,13 +146,14 @@ exports.handler = async (event) => {
     },
   };
 
-  // KAAM 4: Har model ko 4 second do, na chale to agla try karo
+   // KAAM 4: Har model ko 4 second do, na chale to agla try karo
+  const problems = [];
   for (const model of models) {
     try {
       const res = await callGemini(model, apiKey, body, 4000);
 
       if (!res.ok) {
-        console.error(`${model} status ${res.status}`, (await res.text()).slice(0, 300));
+        problems.push(`${model}: status ${res.status} ${(await res.text()).slice(0, 200)}`);
         continue;
       }
 
@@ -162,14 +163,16 @@ exports.handler = async (event) => {
       // KAAM 5: Jawab check karo, sahi ho tabhi browser ko do
       const analysis = validateAnalysis(raw);
       if (!analysis) {
-        console.error(`${model} ne galat format diya`, raw.slice(0, 300));
+        problems.push(
+          `${model}: galat format. finishReason=${data?.candidates?.[0]?.finishReason} raw=${raw.slice(0, 200)}`
+        );
         continue;
       }
       return reply(200, { analysis, modelUsed: model });
     } catch (err) {
-      console.error(`${model} fail`, err.name);
+      problems.push(`${model}: ${err.name === "AbortError" ? "4 second mein jawab nahi aaya" : err.message}`);
     }
   }
 
-  return reply(502, { error: "AI analysis abhi available nahi hai" });
+  return reply(502, { error: "AI analysis abhi available nahi hai", debug: problems });
 };
