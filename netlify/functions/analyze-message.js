@@ -61,8 +61,13 @@ exports.handler = async (event) => {
       }
     );
 
-    if (!res.ok) {
-      return reply(502, { error: "AI service abhi jawab nahi de rahi" });
+     if (!res.ok) {
+      const detail = await res.text();
+      return reply(502, {
+        error: "AI service abhi jawab nahi de rahi",
+        status: res.status,
+        detail: detail.slice(0, 300),
+      });
     }
 
     const data = await res.json();
