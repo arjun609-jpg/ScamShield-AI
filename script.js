@@ -1082,9 +1082,13 @@ function renderHistory() {
         // ---- AI branch: purane engine ke saath hi shuru, alag chalta hai ----
     // 3000 character se zyada nahi bhejte (backend ki limit)
     if (typeof getAIAnalysis === "function") {
-      getAIAnalysis(value.slice(0, 3000)).then((ai) => {
+           getAIAnalysis(value.slice(0, 3000)).then((ai) => {
         result.ai = ai;                      // AI fail hua to null
-        console.log("AI result:", ai);       // abhi sirf console mein (screen pe Step 10 mein)
+        if (typeof combineResults === "function") {
+          result.fusion = combineResults(result, ai);
+        }
+        console.log("AI result:", ai);
+        console.log("Final:", result.fusion);   // abhi sirf console mein
       });
     }
      
