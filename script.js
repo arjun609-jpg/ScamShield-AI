@@ -535,19 +535,15 @@ function detectScamCategory(text) {
     if (pos < r.input.length) out.appendChild(document.createTextNode(r.input.slice(pos)));
     box.hidden = false;
   }
-  /* ----- Final answer card: sabse upar, AI + rules ka combined faisla ----- */
+
+   /* ----- AI panel: combined faisla + AI ki report ----- */
   function renderAIPanel(r) {
-    const body = $("resultBody");
     let panel = $("aiPanel");
     if (!panel) {
       panel = document.createElement("section");
       panel.id = "aiPanel";
       panel.className = "ai-panel";
-      body.insertBefore(panel, body.firstChild);          // sabse upar
-      const divider = document.createElement("h3");
-      divider.className = "ai-divider";
-      divider.textContent = "Rule-based engine details (technical)";
-      body.insertBefore(divider, panel.nextSibling);      // uske neeche purana card
+      $("resultBody").appendChild(panel);
     }
     panel.textContent = "";
 
@@ -574,30 +570,31 @@ function detectScamCategory(text) {
     };
     const nice = (s) => String(s || "").replace(/_/g, " ").toLowerCase();
 
-    add("h3", "Final answer", "ai-title");
+    add("h3", "AI analysis (second opinion)", "ai-title");
 
-    // AI nahi chala: tab bhi ek faisla dikhao (sirf rules ka)
+    if (r.aiState === "loading") {
+      add("p", "AI is reading this " + (r.mode === "url" ? "link" : "message") + "...", "ai-muted");
+      return;
+    }
     if (r.aiState !== "done" || !r.ai) {
-      if (r.fusion) {
-        const badge = add("div", r.fusion.label, "ai-final");
-        badge.dataset.final = r.fusion.final;
-      }
-      add("p", "AI analysis was unavailable, so this answer uses the rule-based engine only (details below).", "ai-muted");
+      add("p", "AI analysis was unavailable. The result above uses the rule-based engine only.", "ai-muted");
       return;
     }
 
     const ai = r.ai;
 
     if (r.fusion) {
-      const badge = add("div", r.fusion.label, "ai-final");
+      const badge = add("div", "Combined: " + r.fusion.label, "ai-final");
       badge.dataset.final = r.fusion.final;
       add("p", r.fusion.reason, "ai-muted");
     }
 
-    add("p", ai.explanation);
+    add("p", "AI verdict: " + nice(ai.verdict) + " | Risk: " + nice(ai.risk_level) +
+      " | Confidence: " + nice(ai.confidence), "ai-muted");
     if (ai.category && ai.category !== "NONE") {
-      add("p", "Possible scam type: " + nice(ai.category) + " (AI confidence: " + nice(ai.confidence) + ")", "ai-muted");
+      add("p", "Possible scam type: " + nice(ai.category), "ai-muted");
     }
+    add("p", ai.explanation);
 
     addList("What the AI noticed", ai.indicators, (i) => {
       const li = document.createElement("li");
@@ -611,7 +608,6 @@ function detectScamCategory(text) {
     addList("What to do", ai.recommended_actions, plainItem);
     addList("What the AI could not check", ai.limitations, plainItem);
   }
-   
 
   function renderResult(r) {
     lastResult = r;
@@ -1107,7 +1103,7 @@ function renderHistory() {
 
   function startScanning() {
     const steps = mode === "message"
-      ? ["Reading the message...", "AI is analysing the meaning...", "Checking links and payment requests...", "Preparing your answer..."]
+      ? ["Reading the message...", "Checking urgency and threat words...", "Looking for links and payment requests...", "Matching known scam patterns..."]
       : ["Reading the link...", "Checking the domain...", "Looking for risky patterns...", "Matching known scam patterns..."];
     let i = 0;
     $("scanStep").textContent = steps[0];
@@ -1120,7 +1116,7 @@ function renderHistory() {
     scanStepTimer = setInterval(() => {
       i = Math.min(i + 1, steps.length - 1);
       $("scanStep").textContent = steps[i];
-    }, 1500);
+    }, 200);
   }
 
   function endScanning() {
@@ -1158,32 +1154,37 @@ function renderHistory() {
       result = scanUrl(parsed, value);
     }
     
-         // ---- AI pehle: message AI ko bhejo, jawab aane tak "Analysing..." dikhao ----
-    const aiPromise = (typeof getAIAnalysis === "function")
-      ? getAIAnalysis(value.slice(0, 3000))      // fail hua to null
-      : Promise.resolve(null);
-    const minWait = new Promise((resolve) => setTimeout(resolve, 800));   // animation kam se kam 800ms
-
-    let finished = false;
-    let myTimer = null;
-    const finish = (ai) => {
-      // Do baar na chale; aur beech mein user ne reset kiya ho to chhod do
-      if (finished || scanTimer !== myTimer) return;
-      finished = true;
+        // ---- AI branch: purane engine ke saath hi shuru, alag chalta hai ----
+   
+           // ---- AI branch: purane engine ke saath hi shuru, alag chalta hai ----
+    if (typeof getAIAnalysis === "function") {
+      result.aiState = "loading";
+      getAIAnalysis(value.slice(0, 3000)).then((ai) => {
+        result.ai = ai;                                   // AI fail hua to null
+        result.aiState = ai ? "done" : "unavailable";
+        if (typeof combineResults === "function") {
+          result.fusion = combineResults(result, ai);
+        }
+        // Sirf tab screen badlo jab user abhi isi result ko dekh raha ho
+        if (lastResult === result) renderAIPanel(result);
+      });
+    } else {
+      result.aiState = "unavailable";
+    }
+    
+     
+    const finish = () => {
       endScanning();
-      result.ai = ai;
-      result.aiState = ai ? "done" : "unavailable";
-      if (typeof combineResults === "function") result.fusion = combineResults(result, ai);
       renderResult(result);
       addToHistory(result);
       refreshDashboard();
     };
 
+    const quick = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (quick) { finish(); return; }   // no animation if the person prefers reduced motion
+
     startScanning();
-    myTimer = setTimeout(() => finish(null), 14000);   // safety: 14 second ke baad AI ke bina dikha do
-    scanTimer = myTimer;
-    Promise.all([aiPromise, minWait]).then(([ai]) => finish(ai)); 
-    
+    scanTimer = setTimeout(finish, 800);
   }
 
   /* ------------------------------------------------------------
