@@ -637,3 +637,16 @@ main { grid-template-columns: minmax(0, 1fr); }   /* charts can never widen the 
   .workspace > .recent { display: flex; flex-direction: column; min-height: 250px; contain: size; }
   .recent-list { flex: 1; min-height: 0; max-height: none; }
 }
+
+.ai-panel { margin-top: 20px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; }
+.ai-title { margin: 0 0 10px; font-size: 1.05rem; }
+.ai-panel h4 { margin: 16px 0 6px; font-size: 0.95rem; }
+.ai-muted { color: var(--muted); margin: 6px 0; }
+.ai-final { display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 700; border: 1px solid var(--border); }
+.ai-final[data-final="HIGH_RISK"] { color: var(--red); border-color: var(--red); }
+.ai-final[data-final="SUSPICIOUS"] { color: #f97316; border-color: #f97316; }
+.ai-final[data-final="NEEDS_REVIEW"] { color: var(--amber); border-color: var(--amber); }
+.ai-final[data-final="LOW_RISK"] { color: var(--green); border-color: var(--green); }
+.ai-list { margin: 0; padding-left: 20px; }
+.ai-list li { margin: 6px 0; }
+.ai-list span { display: block; color: var(--muted); }

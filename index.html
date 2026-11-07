@@ -190,7 +190,7 @@
         </button>
         <p class="breadcrumb">Workspace / <strong>Dashboard</strong></p>
         <div class="topbar-right">
-          <p class="engine-status" role="status"><span class="dot" aria-hidden="true"></span>Detection engine: rule-based, running locally</p>
+          <p class="engine-status" role="status"><span class="dot" aria-hidden="true"></span>Detection: rule-based engine + AI second opinion</p>
           <button class="btn btn-ghost theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch to light theme">☀️</button>
           <button class="btn btn-ghost" id="openAbout" type="button">About</button>
           
@@ -245,7 +245,7 @@
               <textarea id="scanInput" rows="7" maxlength="2000" placeholder="Paste the message here. Do not paste real OTPs, PINs or passwords." aria-describedby="inputHint inputError"></textarea>
 
               <div class="field-meta">
-              <p id="inputHint" class="hint">Analysed in your browser. The saved history entry goes to your account only.</p>
+              <p id="inputHint" class="hint"> The rule check runs in your browser. The message text is also sent to an AI service (Google Gemini) for a second opinion. The saved history entry goes to your account only.The saved history entry goes to your account only.</p>
                 <p class="counter"><span id="charCount">0</span> / 2000</p>
               </div>
               <p class="error" id="inputError" role="alert" hidden></p>

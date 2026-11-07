@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============ ScamShield AI : script.js ============
-   Rule-based, client-side detection. No server, no API key.
+   Rule-based, client-side detection.Rule-based engine runs in the browser; AI runs through a Netlify Function.
    The score is a heuristic indicator score, NOT a fraud probability. */
 
 (function () {
@@ -535,6 +535,80 @@ function detectScamCategory(text) {
     if (pos < r.input.length) out.appendChild(document.createTextNode(r.input.slice(pos)));
     box.hidden = false;
   }
+
+   /* ----- AI panel: combined faisla + AI ki report ----- */
+  function renderAIPanel(r) {
+    let panel = $("aiPanel");
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "aiPanel";
+      panel.className = "ai-panel";
+      $("resultBody").appendChild(panel);
+    }
+    panel.textContent = "";
+
+    // textContent use karte hain, taaki AI ka text kabhi HTML ban ke na chale
+    const add = (tag, text, cls) => {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      el.textContent = text;
+      panel.appendChild(el);
+      return el;
+    };
+    const addList = (title, items, makeItem) => {
+      if (!items || items.length === 0) return;
+      add("h4", title);
+      const ul = document.createElement("ul");
+      ul.className = "ai-list";
+      items.forEach((item) => ul.appendChild(makeItem(item)));
+      panel.appendChild(ul);
+    };
+    const plainItem = (text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      return li;
+    };
+    const nice = (s) => String(s || "").replace(/_/g, " ").toLowerCase();
+
+    add("h3", "AI analysis (second opinion)", "ai-title");
+
+    if (r.aiState === "loading") {
+      add("p", "AI is reading this " + (r.mode === "url" ? "link" : "message") + "...", "ai-muted");
+      return;
+    }
+    if (r.aiState !== "done" || !r.ai) {
+      add("p", "AI analysis was unavailable. The result above uses the rule-based engine only.", "ai-muted");
+      return;
+    }
+
+    const ai = r.ai;
+
+    if (r.fusion) {
+      const badge = add("div", "Combined: " + r.fusion.label, "ai-final");
+      badge.dataset.final = r.fusion.final;
+      add("p", r.fusion.reason, "ai-muted");
+    }
+
+    add("p", "AI verdict: " + nice(ai.verdict) + " | Risk: " + nice(ai.risk_level) +
+      " | Confidence: " + nice(ai.confidence), "ai-muted");
+    if (ai.category && ai.category !== "NONE") {
+      add("p", "Possible scam type: " + nice(ai.category), "ai-muted");
+    }
+    add("p", ai.explanation);
+
+    addList("What the AI noticed", ai.indicators, (i) => {
+      const li = document.createElement("li");
+      const strong = document.createElement("strong");
+      strong.textContent = nice(i.type);
+      const span = document.createElement("span");
+      span.textContent = (i.evidence ? '"' + i.evidence + '" - ' : "") + i.reason;
+      li.append(strong, span);
+      return li;
+    });
+    addList("What to do", ai.recommended_actions, plainItem);
+    addList("What the AI could not check", ai.limitations, plainItem);
+  }
+
   function renderResult(r) {
     lastResult = r;
     $("resultPanel").dataset.level = r.level;
@@ -567,6 +641,7 @@ function detectScamCategory(text) {
       r.indicators.forEach((i) => list.appendChild(makeIndicator(`${i.title} (+${i.points})`, i.why)));
     }
      renderFlagged(r);
+     renderAIPanel(r);
     $("resultPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
@@ -1080,17 +1155,23 @@ function renderHistory() {
     }
     
         // ---- AI branch: purane engine ke saath hi shuru, alag chalta hai ----
-    // 3000 character se zyada nahi bhejte (backend ki limit)
+   
+           // ---- AI branch: purane engine ke saath hi shuru, alag chalta hai ----
     if (typeof getAIAnalysis === "function") {
-           getAIAnalysis(value.slice(0, 3000)).then((ai) => {
-        result.ai = ai;                      // AI fail hua to null
+      result.aiState = "loading";
+      getAIAnalysis(value.slice(0, 3000)).then((ai) => {
+        result.ai = ai;                                   // AI fail hua to null
+        result.aiState = ai ? "done" : "unavailable";
         if (typeof combineResults === "function") {
           result.fusion = combineResults(result, ai);
         }
-        console.log("AI result:", ai);
-        console.log("Final:", result.fusion);   // abhi sirf console mein
+        // Sirf tab screen badlo jab user abhi isi result ko dekh raha ho
+        if (lastResult === result) renderAIPanel(result);
       });
+    } else {
+      result.aiState = "unavailable";
     }
+    
      
     const finish = () => {
       endScanning();
